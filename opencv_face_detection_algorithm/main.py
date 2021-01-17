@@ -42,3 +42,7 @@ while True:
     k = cv2.waitKey(1) & 0xff == ord('q')
     if k == 27:
         break
+
+# Release the captures when quit
+live_video.release()
+cv2.destroyAllWindows()
