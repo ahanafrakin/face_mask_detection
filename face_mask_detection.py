@@ -1,5 +1,5 @@
 # Standard Library imports
-import os, sys, threading, time, cv2, torch
+import os, sys, threading, time, cv2, torch, time
 # PyQt5 imports
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -13,6 +13,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
 from threading import Condition
+# email
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 class CNN_VGG_Soft_Classifier(nn.Module):
   def __init__(self):
@@ -42,7 +48,26 @@ class SignalsToGui(QObject):
 class SignalsFromGui:
     trigger = Condition()
     run_webcam = False
+    username = None
+    password = None
 
+
+def send_email(user, pwd, recipient, subject, body, image_payload=None):
+    msg = MIMEMultipart()
+    msg['From'] = user
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain'))
+
+    part = MIMEBase('application', 'octet-stream')
+
+    text = msg.as_string()
+
+    server = smtplib.SMTP('smtp-mail.outlook.com', 587)
+    server.starttls()
+    server.login(user, pwd)
+    server.sendmail(user, recipient, text)
+    server.quit()
 
 class Backend():
     def __init__(self, sigs_to_gui, sigs_from_gui):
@@ -72,6 +97,10 @@ class Backend():
             self.capture = cv2.VideoCapture(int(camera_name))
         except Exception:
             sys.exit('Could not start the video')
+
+        no_mask = 0
+        last_time_email = None
+
 
         while(self.sigs_from_gui.run_webcam == True):
             # with self.sigs_from_gui.trigger:
@@ -104,6 +133,17 @@ class Backend():
             label = ''
             if(preds > 0):
                 label='No mask'
+                # Add to number of times no mask has been found
+                no_mask+=1
+                if(no_mask>3):
+                    if(last_time_email == None):
+                        send_email(self.sigs_from_gui.username, self.sigs_from_gui.password, self.sigs_from_gui.username, 'Non-Masker Notification', 'Someone without a mask walked in')
+                        last_time_email = time.ctime()
+                    # else:
+                    #     if(int(time.ctime()) - int(last_time_email) > 300):
+                    #         send_email(self.sigs_from_gui.username, self.sigs_from_gui.password, self.sigs_from_gui.username, 'Non-Masker Notification', 'Someone without a mask walked in')
+                    #         last_time_email = time.ctime()
+                    no_mask = 0
             else:
                 label='Mask'
 
@@ -136,6 +176,14 @@ def main():
     """
     sigs_to_gui = SignalsToGui()
     sigs_from_gui = SignalsFromGui()
+    try:
+        credential_info = None
+        with open(r'./user.txt', 'r') as f:
+            credential_info = f.read()
+            sigs_from_gui.username = credential_info.split('username:')[1].split('\n')[0]
+            sigs_from_gui.password = credential_info.split('password:')[1]
+    except Exception:
+        sys.exit(r'Please ensure you have a user.txt file with username:[___]\npassword:[___]')
     backend = Backend(sigs_to_gui, sigs_from_gui)
     os.environ["QT_STYLE_OVERRIDE"] = ""
     app = QtWidgets.QApplication(sys.argv)
