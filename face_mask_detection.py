@@ -62,7 +62,7 @@ class Backend():
                                  std=[0.229, 0.224, 0.225])])
 
         # Process and load the haar cascade
-        self.face_cascades = cv2.CascadeClassifier(r".\opencv_face_detection_algorithm\haarcascade_frontalface_default.xml")
+        self.face_cascades = cv2.CascadeClassifier(r"./opencv_face_detection_algorithm/haarcascade_frontalface_default.xml")
 
     def startVideo(self, camera_name=0):
         """
@@ -139,9 +139,8 @@ def main():
     backend = Backend(sigs_to_gui, sigs_from_gui)
     os.environ["QT_STYLE_OVERRIDE"] = ""
     app = QtWidgets.QApplication(sys.argv)
-    backend_thread = threading.Thread(target=backend.startVideo)
-    facemask_ui = FaceMaskUI(sigs_to_gui, sigs_from_gui, backend_thread, backend)
-    sigs_to_gui.trigger.connect(facemask_ui.update_image)
+    facemask_ui = FaceMaskUI(sigs_to_gui, sigs_from_gui, backend)
+    sigs_to_gui.trigger.connect(facemask_ui.updateImage)
     
     facemask_ui.show()
     sys.exit(app.exec_())
@@ -158,14 +157,15 @@ class FaceMaskUI(QtWidgets.QMainWindow):
     Attributes:
         sigs_to_gui: Signals sent from other threads to the GUI thread.
     """
-    def __init__(self, sigs_to_gui, sigs_from_gui, backend_thread, backend):
+    def __init__(self, sigs_to_gui, sigs_from_gui, backend):
         super().__init__()
 
-        uic.loadUi(r".\mask_detection.ui",self)
+        uic.loadUi(r"./mask_detection.ui",self)
+        self.backend = backend
         self.sigs_to_gui = sigs_to_gui
         self.sigs_from_gui = sigs_from_gui
-        self.backend_thread = backend_thread
         self.sigs_from_gui.run_webcam = True
+        self.backend_thread = threading.Thread(target=self.backend.startVideo)
         self.backend_thread.start()
         self.backend = backend
 
@@ -176,9 +176,20 @@ class FaceMaskUI(QtWidgets.QMainWindow):
         """
         self.sigs_from_gui.run_webcam = False
 
-    def update_image(self, outImage):
+    def clickedStop(self, event):
+        if(self.pushButton.text() == "Stop"):
+            self.sigs_from_gui.run_webcam = False
+            self.pushButton.setText("Start")
+        else:
+            self.sigs_from_gui.run_webcam = True
+            self.backend_thread = threading.Thread(target=self.backend.startVideo)
+            self.backend_thread.start()
+            self.pushButton.setText("Stop")
+
+    def updateImage(self, outImage):
         self.cameraOutput.setPixmap(QPixmap.fromImage(outImage))
         self.cameraOutput.setScaledContents(True)
+
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>741</width>
-    <height>612</height>
+    <width>729</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,24 +34,14 @@
    <widget class="QPushButton" name="pushButton">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>530</y>
+      <x>320</x>
+      <y>550</y>
       <width>93</width>
       <height>28</height>
      </rect>
     </property>
     <property name="text">
-     <string>Ready </string>
-    </property>
-   </widget>
-   <widget class="QTimeEdit" name="timeEdit">
-    <property name="geometry">
-     <rect>
-      <x>920</x>
-      <y>10</y>
-      <width>118</width>
-      <height>22</height>
-     </rect>
+     <string>Stop</string>
     </property>
    </widget>
    <widget class="QLabel" name="cameraOutput">
@@ -76,14 +66,13 @@
    <zorder>cameraOutput</zorder>
    <zorder>TitleLabel</zorder>
    <zorder>pushButton</zorder>
-   <zorder>timeEdit</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>741</width>
+     <width>729</width>
      <height>24</height>
     </rect>
    </property>
@@ -91,5 +80,25 @@
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>pushButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clickedStop()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>366</x>
+     <y>587</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>364</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>clickedStop()</slot>
+ </slots>
 </ui>
