@@ -10,3 +10,10 @@ import cv2
     Classifier
     
 '''
+
+# Process and load the haar cascade
+face_cascades = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+# Get a live video from the webcam, face detection improves with better lighting so ensure the room is well lit
+# possible disadvantage is capturing video at night since reduced lighting reduces accuracy
+live_video = cv2.VideoCapture(0)
