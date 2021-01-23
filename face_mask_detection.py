@@ -1,5 +1,5 @@
 # Standard Library imports
-import os, sys, threading, time, cv2, torch, time
+import os, sys, threading, time, cv2, torch
 # PyQt5 imports
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import QObject, pyqtSignal
@@ -50,24 +50,28 @@ class SignalsFromGui:
     run_webcam = False
     username = None
     password = None
+    timer = 0
 
 
-def send_email(user, pwd, recipient, subject, body, image_payload=None):
-    msg = MIMEMultipart()
-    msg['From'] = user
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain'))
+def send_email(user, pwd, recipient, subject, body):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = user
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
 
-    part = MIMEBase('application', 'octet-stream')
+        part = MIMEBase('application', 'octet-stream')
 
-    text = msg.as_string()
+        text = msg.as_string()
 
-    server = smtplib.SMTP('smtp-mail.outlook.com', 587)
-    server.starttls()
-    server.login(user, pwd)
-    server.sendmail(user, recipient, text)
-    server.quit()
+        server = smtplib.SMTP('smtp-mail.outlook.com', 587)
+        server.starttls()
+        server.login(user, pwd)
+        server.sendmail(user, recipient, text)
+        server.quit()
+    except Exception:
+        print("Error sending email.")
 
 class Backend():
     def __init__(self, sigs_to_gui, sigs_from_gui):
@@ -99,14 +103,10 @@ class Backend():
             sys.exit('Could not start the video')
 
         no_mask = 0
-        last_time_email = None
+        last_time_email = time.time_ns()/(10**9)
 
 
         while(self.sigs_from_gui.run_webcam == True):
-            # with self.sigs_from_gui.trigger:
-            #     self.sigs_from_gui.trigger.wait()
-
-            # if self.sigs_from_gui.run_webcam == True:
             ret, image = self.capture.read()
             image = cv2.resize(image, (640, 480))
 
@@ -117,7 +117,6 @@ class Backend():
             faces = self.face_cascades.detectMultiScale(
                 gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
 
-            start_time = time.time()
             test_img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             test_img = Image.fromarray(test_img)
             transform = transforms.Compose(
@@ -127,25 +126,31 @@ class Backend():
 
             test_img = self.vgg16.features(test_img.unsqueeze(0))
             preds = self.model(test_img)
-            print(preds)
-            print("--- %s seconds ---" % (time.time() - start_time))
             
             label = ''
             if(preds > 0):
                 label='No mask'
                 # Add to number of times no mask has been found
                 no_mask+=1
-                if(no_mask>3):
-                    if(last_time_email == None):
-                        send_email(self.sigs_from_gui.username, self.sigs_from_gui.password, self.sigs_from_gui.username, 'Non-Masker Notification', 'Someone without a mask walked in')
-                        last_time_email = time.ctime()
-                    # else:
-                    #     if(int(time.ctime()) - int(last_time_email) > 300):
-                    #         send_email(self.sigs_from_gui.username, self.sigs_from_gui.password, self.sigs_from_gui.username, 'Non-Masker Notification', 'Someone without a mask walked in')
-                    #         last_time_email = time.ctime()
-                    no_mask = 0
+                if(self.sigs_from_gui.username and self.sigs_from_gui.password and self.sigs_from_gui.timer):
+                    if(no_mask>3):
+                        if(abs(time.time_ns()/(10**9) - last_time_email) > self.sigs_from_gui.timer):
+                            email_thread = threading.Thread(
+                                target = send_email,
+                                args=(
+                                    self.sigs_from_gui.username,
+                                    self.sigs_from_gui.password,
+                                    self.sigs_from_gui.username,
+                                    'Non-Masker Notification',
+                                    'Someone without a mask walked in'
+                                )
+                            )
+                            email_thread.start()
+                            last_time_email = time.time_ns()/(10**9)
+                        no_mask = 0
             else:
                 label='Mask'
+                no_mask = 0
 
             # Draw a rectangle around a face, (x,y) top left, w : width, h : height
             for (x, y, w, h) in faces:
@@ -162,10 +167,6 @@ class Backend():
             outImage = outImage.rgbSwapped()
 
             self.sigs_to_gui.trigger.emit(outImage)
-
-            # else:
-                # break
-
         self.capture.release()
 
 def main():
@@ -176,14 +177,7 @@ def main():
     """
     sigs_to_gui = SignalsToGui()
     sigs_from_gui = SignalsFromGui()
-    try:
-        credential_info = None
-        with open(r'./user.txt', 'r') as f:
-            credential_info = f.read()
-            sigs_from_gui.username = credential_info.split('username:')[1].split('\n')[0]
-            sigs_from_gui.password = credential_info.split('password:')[1]
-    except Exception:
-        sys.exit(r'Please ensure you have a user.txt file with username:[___]\npassword:[___]')
+
     backend = Backend(sigs_to_gui, sigs_from_gui)
     os.environ["QT_STYLE_OVERRIDE"] = ""
     app = QtWidgets.QApplication(sys.argv)
@@ -213,6 +207,11 @@ class FaceMaskUI(QtWidgets.QMainWindow):
         self.sigs_to_gui = sigs_to_gui
         self.sigs_from_gui = sigs_from_gui
         self.sigs_from_gui.run_webcam = True
+        try:
+            self.sigs_from_gui.timer = int(self.lineEdit_timer.text())
+        except Exception:
+            print("Error setting the timer, setting the default as 60")
+            self.sigs_from_gui.timer = 60
         self.backend_thread = threading.Thread(target=self.backend.startVideo)
         self.backend_thread.start()
         self.backend = backend
@@ -225,19 +224,30 @@ class FaceMaskUI(QtWidgets.QMainWindow):
         self.sigs_from_gui.run_webcam = False
 
     def clickedStop(self, event):
-        if(self.pushButton.text() == "Stop"):
+        if(self.pushButton_stop.text() == "Stop"):
             self.sigs_from_gui.run_webcam = False
-            self.pushButton.setText("Start")
+            self.pushButton_stop.setText("Start")
         else:
             self.sigs_from_gui.run_webcam = True
             self.backend_thread = threading.Thread(target=self.backend.startVideo)
             self.backend_thread.start()
-            self.pushButton.setText("Stop")
+            self.pushButton_stop.setText("Stop")
+
+    def clickedSetEmail(self, event):
+        self.sigs_from_gui.username = self.lineEdit_email.text()
+
+    def clickedSetPassword(self, event):
+        self.sigs_from_gui.password = self.lineEdit_password.text()
+
+    def clickedSetTimer(self, event):
+        try:
+            self.sigs_from_gui.timer = int(self.lineEdit_timer.text())
+        except Exception:
+            print("Please ensure the timer is an integet number")
 
     def updateImage(self, outImage):
         self.cameraOutput.setPixmap(QPixmap.fromImage(outImage))
         self.cameraOutput.setScaledContents(True)
-
 
 
 if __name__ == "__main__":

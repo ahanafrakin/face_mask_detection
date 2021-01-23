@@ -79,7 +79,7 @@
      <string>Set</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_password_2">
+   <widget class="QPushButton" name="pushButton_timer">
     <property name="geometry">
      <rect>
       <x>492</x>
@@ -92,7 +92,7 @@
      <string>Set</string>
     </property>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>250</x>
@@ -117,7 +117,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QLineEdit" name="lineEdit"/>
+          <widget class="QLineEdit" name="lineEdit_email"/>
          </item>
         </layout>
        </item>
@@ -138,7 +138,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
-          <widget class="QLineEdit" name="lineEdit_2">
+          <widget class="QLineEdit" name="lineEdit_password">
            <property name="echoMode">
             <enum>QLineEdit::Password</enum>
            </property>
@@ -163,7 +163,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_4">
          <item>
-          <widget class="QLineEdit" name="lineEdit_notificationTimer">
+          <widget class="QLineEdit" name="lineEdit_timer">
            <property name="text">
             <string>60</string>
            </property>
@@ -187,14 +187,10 @@
    </widget>
    <zorder>cameraOutput</zorder>
    <zorder>TitleLabel</zorder>
-   <zorder>pushButton_stop</zorder>
-   <zorder>plainTextEdit</zorder>
-   <zorder>label_email</zorder>
-   <zorder>pushButton_email</zorder>
    <zorder>layoutWidget</zorder>
    <zorder>pushButton_password</zorder>
    <zorder>pushButton_email</zorder>
-   <zorder>pushButton_password_2</zorder>
+   <zorder>pushButton_timer</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -226,8 +222,59 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButton_email</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clickedSetEmail()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>530</x>
+     <y>594</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>364</x>
+     <y>378</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_password</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clickedSetPassword()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>530</x>
+     <y>652</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>364</x>
+     <y>378</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButton_timer</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>clickedSetTimer()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>530</x>
+     <y>711</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>364</x>
+     <y>378</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>clickedStop()</slot>
+  <slot>clickedSetEmail()</slot>
+  <slot>clickedSetPassword()</slot>
+  <slot>clickedSetTimer()</slot>
  </slots>
 </ui>
